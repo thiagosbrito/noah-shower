@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { FaGift, FaCalendarAlt, FaMapMarkerAlt, FaPaw } from 'react-icons/fa'
 import RSVPForm from './RSVPForm'
@@ -9,7 +10,30 @@ interface PageContentProps {
   guestId: string | null
 }
 
-export default function PageContent({ guestId }: PageContentProps) {
+export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
+  const [isLoading, setIsLoading] = useState(true)
+  const [guestId, setGuestId] = useState<string | null>(urlGuestId)
+
+  useEffect(() => {
+    // Check localStorage for guest data if no URL guest ID
+    if (!urlGuestId) {
+      const storedGuest = localStorage.getItem('noah-shower-guest')
+      if (storedGuest) {
+        const guest = JSON.parse(storedGuest)
+        setGuestId(guest.id)
+      }
+    }
+    setIsLoading(false)
+  }, [urlGuestId])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-sky-100 to-sky-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-700"></div>
+      </div>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-100 to-sky-50">
       {/* Hero Section */}
