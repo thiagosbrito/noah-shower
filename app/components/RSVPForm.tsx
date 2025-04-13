@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 import { Guest } from '../types/supabase'
-import { FaUser, FaCheck, FaPaw, FaUserFriends } from 'react-icons/fa'
+import { FaUser, FaCheck, FaPaw, FaUserFriends, FaTimes } from 'react-icons/fa'
 import GiftRegistry from './GiftRegistry'
 
 interface RSVPFormProps {
@@ -200,14 +200,8 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
           {formData.status === 'attending' && (
             <button
               onClick={() => {
-                localStorage.removeItem(GUEST_STORAGE_KEY)
                 setSuccess(false)
-                setGuest(null)
-                setFormData({
-                  name: '',
-                  companions: 0,
-                  status: 'pending'
-                })
+                setLoading(false)
               }}
               className="mt-4 text-sm text-orange-600 hover:text-orange-700 underline"
             >
@@ -293,34 +287,55 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
           </>
         )}
 
-        <div>
-          <label className="block text-xl font-semibold text-orange-800 mb-2 font-sour-gummy">
-            Will you attend?
+        {/* Attendance Selection */}
+        <div className="space-y-4">
+          <label className="block text-xl font-semibold text-orange-800 mb-4 font-sour-gummy">
+            Will you join us?
           </label>
-          <div className="mt-2 space-y-3">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="status"
-                value="attending"
-                checked={formData.status === 'attending'}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Guest['status'] }))}
-                className="h-4 w-4 focus:ring-orange-500 border-gray-300 text-orange-600"
-                required
-              />
-              <span className="ml-3 text-orange-700">Yes, I'll be there!</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="status"
-                value="not_attending"
-                checked={formData.status === 'not_attending'}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Guest['status'] }))}
-                className="h-4 w-4 focus:ring-orange-500 border-gray-300 text-orange-600"
-              />
-              <span className="ml-3 text-orange-700">Sorry, I can't make it</span>
-            </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => handleInputChange({ target: { name: 'status', value: 'attending' } } as any)}
+              className={`p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
+                formData.status === 'attending'
+                  ? 'border-orange-400 bg-orange-50'
+                  : 'border-orange-100 hover:border-orange-200 hover:bg-orange-50/50'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                formData.status === 'attending'
+                  ? 'bg-orange-400 text-white'
+                  : 'bg-orange-100 text-orange-700'
+              }`}>
+                <FaCheck className="text-2xl" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-orange-800 mb-1">Yes, I'll be there!</h3>
+                <p className="text-orange-700 text-sm">Can't wait to celebrate with you!</p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleInputChange({ target: { name: 'status', value: 'not_attending' } } as any)}
+              className={`p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
+                formData.status === 'not_attending'
+                  ? 'border-orange-400 bg-orange-50'
+                  : 'border-orange-100 hover:border-orange-200 hover:bg-orange-50/50'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                formData.status === 'not_attending'
+                  ? 'bg-orange-400 text-white'
+                  : 'bg-orange-100 text-orange-700'
+              }`}>
+                <FaTimes className="text-2xl" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-orange-800 mb-1">Sorry, can't make it</h3>
+                <p className="text-orange-700 text-sm">We'll miss you at the celebration</p>
+              </div>
+            </button>
           </div>
         </div>
 

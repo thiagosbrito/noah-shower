@@ -35,15 +35,19 @@ export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-sky-100 to-sky-50">
-      {/* Hero Section */}
-      <section className="relative h-screen overflow-hidden">
+    <main className="min-h-screen">
+      {/* Hero Section with Event Details and RSVP */}
+      <section className="relative min-h-screen overflow-hidden">
+        {/* Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-orange-200 to-orange-100"></div>
+        
         {/* Jungle Background */}
         <div className="absolute inset-0 bg-[url('/jungle-frame.svg')] bg-cover no-repeat opacity-20"></div>
 
         {/* Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-          <div className="text-center flex flex-col gap-y-9 px-4">
+        <div className="relative min-h-screen container mx-auto px-4 py-16 flex flex-col">
+          {/* Welcome Text */}
+          <div className="text-center mb-12">
             <div className="flex justify-center mb-6">
               <FaPaw className="text-orange-700 text-6xl animate-bounce" />
             </div>
@@ -66,15 +70,11 @@ export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
               We're going on a jungle adventure to celebrate our little explorer on the way! 🌿🦁🐒
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* Event Details and RSVP Section */}
-      <section className="py-16 relative bg-gradient-to-b from-sky-50 to-green-50">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8">
+          {/* Event Details and RSVP Grid */}
+          <div className="grid md:grid-cols-3 gap-8 flex-grow">
             {/* Event Details Card */}
-            <div className="bg-white/90 p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300">
+            <div className="bg-white/90 p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300 h-fit">
               <div className="flex items-center space-x-3 mb-8">
                 <div className="bg-orange-100 p-3 rounded-xl">
                   <FaCalendarAlt className="text-orange-700 text-2xl" />
@@ -124,7 +124,7 @@ export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
             </div>
 
             {/* RSVP Form Card */}
-            <div className="bg-white/90 p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300">
+            <div className="md:col-span-2">
               <RSVPForm guestId={guestId || undefined} />
             </div>
           </div>
@@ -132,29 +132,19 @@ export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
       </section>
 
       {/* Gifts Section */}
-      <section className="py-16 bg-gradient-to-b from-green-50 to-sky-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-orange-800 mb-4 font-sour-gummy">Gift Registry</h2>
-            <p className="text-orange-700 max-w-2xl mx-auto font-roboto">
-              Please RSVP first to reserve a gift from our registry. Help us prepare for our little explorer's wild adventure!
-            </p>
+      {guestId && (
+        <section className="py-16 bg-gradient-to-b from-green-50 to-sky-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-orange-800 mb-4 font-sour-gummy">Gift Registry</h2>
+              <p className="text-orange-700 max-w-2xl mx-auto font-roboto">
+                If you'd like to bring a gift, we've put together a wishlist of items that would be helpful. Your presence is the most important gift of all, but if you choose to bring something, we'll be delighted!
+              </p>
+            </div>
+            <GiftRegistry guestId={guestId} />
           </div>
-          <GiftRegistry guestId={guestId || undefined} />
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-orange-800 text-orange-100 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="font-roboto">We can't wait to celebrate with you!</p>
-          <div className="flex justify-center space-x-4 mt-4">
-            <FaPaw className="text-orange-200" />
-            <FaPaw className="text-orange-200" />
-            <FaPaw className="text-orange-200" />
-          </div>
-        </div>
-      </footer>
+        </section>
+      )}
     </main>
   )
 } 
