@@ -6,7 +6,7 @@ import PageContent from './PageContent'
 
 function ClientContent() {
   const searchParams = useSearchParams()
-  const guestId = searchParams.get('guest')
+  const guestId = searchParams.get('guest') || undefined
 
   return <PageContent guestId={guestId} />
 }

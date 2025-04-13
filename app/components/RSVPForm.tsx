@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 import { Guest } from '../types/supabase'
-import { FaUser, FaCheck, FaPaw, FaUserFriends, FaTimes, FaSpinner } from 'react-icons/fa'
+import { FaUser, FaCheck, FaPaw, FaUserFriends, FaTimes, FaSpinner, FaEdit, FaPaperPlane } from 'react-icons/fa'
 import GiftRegistry from './GiftRegistry'
 import { useLanguage } from '../contexts/LanguageContext'
 
@@ -162,16 +162,16 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+        <FaSpinner className="animate-spin text-4xl text-orange-600" />
       </div>
     )
   }
 
   if (success) {
     return (
-      <div>
+      <div className="animate-fade-in">
         <div className="text-center flex flex-col items-center justify-center mb-12">
-          <div className="text-orange-600 text-6xl mb-4">
+          <div className="text-orange-600 text-6xl mb-4 animate-bounce-once">
             <FaCheck />
           </div>
           <h3 className="text-2xl font-bold text-orange-600 mb-2 font-sour-gummy">{t('rsvp.success')}</h3>
@@ -186,15 +186,16 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
                 setSuccess(false)
                 setLoading(false)
               }}
-              className="mt-4 text-sm text-orange-600 hover:text-orange-700 underline"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-all duration-300"
             >
+              <FaEdit className="text-sm" />
               {t('rsvp.update')}
             </button>
           )}
         </div>
 
         {formData.status === 'attending' && (
-          <div className="mt-8">
+          <div className="mt-8 animate-fade-in">
             <GiftRegistry guestId={guest?.id} />
           </div>
         )}
@@ -207,117 +208,161 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
     : formData.status !== 'pending'
 
   return (
-    <div className="bg-white rounded-lg p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="bg-orange-100 p-2 rounded-lg">
-          <FaPaw className="h-6 w-6 text-orange-700" />
+    <div className="bg-white/90 p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="bg-orange-100 p-3 rounded-xl transform transition-transform hover:scale-110 duration-300">
+          <FaPaw className="text-orange-700 text-2xl" />
         </div>
-        <h2 className="text-3xl font-bold text-orange-800 font-sour-gummy">RSVP</h2>
+        <h2 className="text-3xl font-bold text-orange-800 font-sour-gummy">{t('rsvp.title')}</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
+      <p className="text-orange-700 mb-8 font-roboto">{t('rsvp.subtitle')}</p>
 
-        <div>
-          <label className="block text-orange-800 font-medium mb-2">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="group">
+          <label htmlFor="name" className="block text-orange-900 font-sour-gummy mb-2 transition-colors group-focus-within:text-orange-900">
             {t('rsvp.name')}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaUser className="text-orange-400" />
-            </div>
+            <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400 transition-colors group-focus-within:text-orange-600" />
             <input
               type="text"
+              id="name"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder={t('rsvp.namePlaceholder')}
+              className={`w-full pl-10 pr-4 py-3 rounded-lg border text-orange-600 ${
+                formErrors.name ? 'border-red-300 focus:ring-red-200' : 'border-orange-200 focus:ring-orange-200'
+              } focus:outline-none focus:ring-4 focus:border-transparent transition-all duration-300 placeholder:text-orange-300`}
               disabled={!!guest}
             />
+            {formData.name && !formErrors.name && (
+              <FaCheck className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500" />
+            )}
           </div>
           {formErrors.name && (
-            <p className="text-red-600 text-sm mt-1">{formErrors.name}</p>
+            <p className="mt-2 text-red-500 text-sm flex items-center gap-1">
+              <FaTimes className="text-xs" />
+              {formErrors.name}
+            </p>
           )}
         </div>
 
         <div>
-          <label className="block text-orange-800 font-medium mb-2">
+          <label className="block text-orange-900 font-sour-gummy mb-4">
             {t('rsvp.status')}
           </label>
-          <div className="space-y-2">
-            <label className="flex items-center space-x-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className={`relative flex items-center p-4 cursor-pointer bg-white rounded-xl border-2 ${
+              formData.status === 'attending' 
+                ? 'border-orange-600 bg-orange-50/50' 
+                : 'border-orange-100 hover:border-orange-300'
+            } transition-all duration-300`}>
               <input
                 type="radio"
                 name="status"
                 value="attending"
                 checked={formData.status === 'attending'}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-                className="text-orange-600 focus:ring-orange-500"
+                onChange={() => handleInputChange('status', 'attending')}
+                className="sr-only"
               />
-              <span className="text-orange-800">
-                <FaCheck className="inline mr-2" />
-                {t('rsvp.attending')}
-              </span>
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 border-2 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  formData.status === 'attending'
+                    ? 'border-orange-600 bg-orange-600'
+                    : 'border-orange-300'
+                }`}>
+                  <FaCheck className={`text-white transform transition-transform duration-300 ${
+                    formData.status === 'attending' ? 'scale-100' : 'scale-0'
+                  }`} />
+                </div>
+                <div>
+                  <span className={`block font-medium transition-colors duration-300 ${
+                    formData.status === 'attending' ? 'text-orange-900' : 'text-orange-800'
+                  }`}>{t('rsvp.attending')}</span>
+                  <span className="text-sm text-orange-500">{t('rsvp.attendingDesc')}</span>
+                </div>
+              </div>
             </label>
-            <label className="flex items-center space-x-2">
+
+            <label className={`relative flex items-center p-4 cursor-pointer bg-white rounded-xl border-2 ${
+              formData.status === 'not_attending' 
+                ? 'border-orange-600 bg-orange-50/50' 
+                : 'border-orange-100 hover:border-orange-300'
+            } transition-all duration-300`}>
               <input
                 type="radio"
                 name="status"
                 value="not_attending"
                 checked={formData.status === 'not_attending'}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-                className="text-orange-600 focus:ring-orange-500"
+                onChange={() => handleInputChange('status', 'not_attending')}
+                className="sr-only"
               />
-              <span className="text-orange-800">
-                <FaTimes className="inline mr-2" />
-                {t('rsvp.notAttending')}
-              </span>
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 border-2 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  formData.status === 'not_attending'
+                    ? 'border-orange-600 bg-orange-600'
+                    : 'border-orange-300'
+                }`}>
+                  <FaCheck className={`text-white transform transition-transform duration-300 ${
+                    formData.status === 'not_attending' ? 'scale-100' : 'scale-0'
+                  }`} />
+                </div>
+                <div>
+                  <span className={`block font-medium transition-colors duration-300 ${
+                    formData.status === 'not_attending' ? 'text-orange-900' : 'text-orange-800'
+                  }`}>{t('rsvp.notAttending')}</span>
+                  <span className="text-sm text-orange-500">{t('rsvp.notAttendingDesc')}</span>
+                </div>
+              </div>
             </label>
           </div>
         </div>
 
         {formData.status === 'attending' && (
-          <div>
-            <label className="block text-orange-800 font-medium mb-2">
+          <div className="animate-fade-in">
+            <label className="block text-orange-900 font-sour-gummy mb-2">
               {t('rsvp.companions')}
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUserFriends className="text-orange-400" />
-              </div>
+              <FaUserFriends className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400" />
               <input
                 type="number"
                 min="0"
                 max="5"
                 value={formData.companions}
-                onChange={(e) => handleInputChange('companions', parseInt(e.target.value))}
-                className="w-full pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={(e) => handleInputChange('companions', parseInt(e.target.value) || 0)}
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border text-orange-600 ${
+                  formErrors.companions ? 'border-red-300 focus:ring-red-200' : 'border-orange-200 focus:ring-orange-200'
+                } focus:outline-none focus:ring-4 focus:border-transparent transition-all duration-300`}
               />
             </div>
             {formErrors.companions && (
-              <p className="text-red-600 text-sm mt-1">{formErrors.companions}</p>
+              <p className="mt-2 text-red-500 text-sm flex items-center gap-1">
+                <FaTimes className="text-xs" />
+                {formErrors.companions}
+              </p>
             )}
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || !isFormValid}
-          className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center">
-              <FaSpinner className="animate-spin mr-2" />
-              {t('rsvp.submitting')}
-            </div>
-          ) : (
-            t('rsvp.submit')
-          )}
-        </button>
+        <div className="pt-4 flex justify-end">
+          <button
+            type="submit"
+            disabled={!isFormValid || loading}
+            className={`w-fit flex items-center justify-center gap-2 py-3 px-12 rounded-lg text-white font-sour-gummy transition-all duration-300
+              ${isFormValid && !loading
+                ? 'bg-orange-600 hover:bg-orange-700 active:transform active:scale-[0.98]'
+                : 'bg-orange-300 cursor-not-allowed'
+              }`}
+          >
+            {loading ? (
+              <FaSpinner className="animate-spin" />
+            ) : (
+              'Confirm'
+            )}
+          </button>
+        </div>
       </form>
     </div>
   )

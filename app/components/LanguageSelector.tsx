@@ -9,7 +9,6 @@ export default function LanguageSelector() {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -30,15 +29,15 @@ export default function LanguageSelector() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-white/95 p-2 rounded-full shadow-lg cursor-pointer backdrop-blur-sm hover:bg-white/100 transition-colors duration-300"
+        className="bg-white/90 p-2 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300"
       >
-        <FaGlobe className="text-lg text-orange-800" />
+        <FaGlobe className="text-orange-700 text-xl" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-white/95 p-3 rounded-xl shadow-lg backdrop-blur-sm min-w-[160px]">
+        <div className="absolute top-full right-0 mt-2 bg-white/90 p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100">
           <div className="space-y-2">
-            <label className="flex items-center gap-2 cursor-pointer hover:bg-orange-50/50 p-1 rounded transition-colors duration-300">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="language"
@@ -47,9 +46,9 @@ export default function LanguageSelector() {
                 onChange={() => handleLanguageChange('pt-BR')}
                 className="w-4 h-4 text-orange-600 border-orange-300 focus:ring-orange-500"
               />
-              <span className="text-sm text-orange-800">Português (Brasil)</span>
+              <span className="text-orange-800">Português (Brasil)</span>
             </label>
-            <label className="flex items-center gap-2 cursor-pointer hover:bg-orange-50/50 p-1 rounded transition-colors duration-300">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="language"
@@ -58,7 +57,7 @@ export default function LanguageSelector() {
                 onChange={() => handleLanguageChange('en')}
                 className="w-4 h-4 text-orange-600 border-orange-300 focus:ring-orange-500"
               />
-              <span className="text-sm text-orange-800">English</span>
+              <span className="text-orange-800">English</span>
             </label>
           </div>
         </div>

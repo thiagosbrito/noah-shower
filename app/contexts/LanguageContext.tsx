@@ -21,6 +21,8 @@ export type TranslationKey =
   | 'rsvp.received'
   | 'rsvp.attending'
   | 'rsvp.notAttending'
+  | 'rsvp.attendingDesc'
+  | 'rsvp.notAttendingDesc'
   | 'gifts.title'
   | 'gifts.subtitle'
   | 'gifts.available'
@@ -78,6 +80,8 @@ const translations: Translations = {
     'rsvp.received': "We've received your RSVP. Thank you for confirming!",
     'rsvp.attending': "Yes, I'll be there!",
     'rsvp.notAttending': "Sorry, can't make it",
+    'rsvp.attendingDesc': "I'm excited to celebrate this special moment",
+    'rsvp.notAttendingDesc': "I'll be there in spirit",
     'gifts.title': 'Gift Registry',
     'gifts.subtitle': 'If you\'d like to bring a gift, we\'ve put together a wishlist of items that would be helpful. Your presence is the most important gift of all, but if you choose to bring something, we\'ll be delighted!',
     'gifts.available': 'Available',
@@ -142,6 +146,8 @@ const translations: Translations = {
     'rsvp.received': 'Recebemos sua confirmação. Obrigado por confirmar!',
     'rsvp.attending': 'Sim, estarei lá!',
     'rsvp.notAttending': 'Desculpe, não poderei comparecer',
+    'rsvp.attendingDesc': 'Estou animado para celebrar este momento especial',
+    'rsvp.notAttendingDesc': 'Estarei presente em pensamento',
     'gifts.title': 'Lista de Presentes',
     'gifts.subtitle': 'Se você gostaria de trazer um presente, preparamos uma lista de itens que seriam úteis. Sua presença é o presente mais importante de todos, mas se você escolher trazer algo, ficaremos encantados!',
     'gifts.available': 'Disponível',
