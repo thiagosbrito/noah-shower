@@ -30,7 +30,7 @@ export default function LanguageSelector() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-white/95 p-2 rounded-full shadow-lg backdrop-blur-sm hover:bg-white/100 transition-colors duration-300"
+        className="bg-white/95 p-2 rounded-full shadow-lg cursor-pointer backdrop-blur-sm hover:bg-white/100 transition-colors duration-300"
       >
         <FaGlobe className="text-lg text-orange-800" />
       </button>
