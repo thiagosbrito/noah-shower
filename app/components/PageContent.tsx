@@ -96,7 +96,7 @@ export default function PageContent({ guestId: urlGuestId }: PageContentProps) {
                       </p>
                       <p className="text-orange-700 font-roboto flex items-center">
                         <span className="w-32">Time</span>
-                        <span className="font-medium">Starting at 14:00</span>
+                        <span className="font-medium">Starting at 15:00</span>
                       </p>
                     </div>
                   </div>
