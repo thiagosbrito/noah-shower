@@ -2,85 +2,67 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
-import { FaTrash, FaSync, FaGift } from 'react-icons/fa'
+import { FaGift, FaTrash, FaEdit, FaCheck, FaTimes } from 'react-icons/fa'
+import EditGiftForm from './EditGiftForm'
 
 interface Gift {
   id: string
   name: string
   description: string
   status: 'available' | 'reserved'
-  created_at: string
 }
 
 export default function GiftList() {
   const [gifts, setGifts] = useState<Gift[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingGift, setEditingGift] = useState<Gift | null>(null)
 
   useEffect(() => {
-    console.log('GiftList component mounted')
     fetchGifts()
-
-    // Set up polling every 30 seconds
-    const interval = setInterval(fetchGifts, 30000)
-
-    return () => {
-      clearInterval(interval)
-    }
   }, [])
 
   const fetchGifts = async () => {
-    console.log('Attempting to fetch gifts...')
-    setError(null)
-    
     try {
       const { data, error } = await supabase
         .from('gifts')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
-
-      if (!data) {
-        console.log('No data received from Supabase')
-        setGifts([])
-        return
-      }
-
-      console.log('Setting gifts with data:', data)
-      setGifts(data)
+      if (error) throw error
+      setGifts(data || [])
     } catch (err) {
-      console.error('Error in fetchGifts:', err)
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching gifts')
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteGift = async (giftId: string) => {
+    if (!confirm('Are you sure you want to delete this gift?')) return
+
     try {
       const { error } = await supabase
         .from('gifts')
         .delete()
-        .eq('id', id)
+        .eq('id', giftId)
 
       if (error) throw error
-      
-      // Refresh the list after deletion
-      fetchGifts()
+      setGifts(gifts.filter(gift => gift.id !== giftId))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     }
   }
 
+  const handleGiftUpdated = () => {
+    setEditingGift(null)
+    fetchGifts()
+  }
+
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-gray-300">
-        <FaSync className="animate-spin text-2xl mx-auto mb-2" />
-        Loading gifts...
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
       </div>
     )
   }
@@ -94,61 +76,65 @@ export default function GiftList() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="mb-4">
-        <button 
-          onClick={fetchGifts}
-          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center space-x-2"
-        >
-          <FaSync className={isLoading ? 'animate-spin' : ''} />
-          <span>Refresh Gift List</span>
-        </button>
-      </div>
-      <div className="bg-gray-700 rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-600">
-          <thead>
-            <tr className="bg-gray-800">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Gift</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Description</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-600">
-            {gifts.map((gift) => (
-              <tr key={gift.id} className="hover:bg-gray-600/50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <FaGift className="text-pink-400 mr-2" />
-                    <span className="text-gray-200">{gift.name}</span>
+    <div className="space-y-4">
+      {gifts.length === 0 ? (
+        <div className="text-center text-gray-400 py-8">
+          No gifts added yet
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {gifts.map((gift) => (
+            <div key={gift.id} className="bg-gray-800 rounded-lg p-4">
+              {editingGift?.id === gift.id ? (
+                <EditGiftForm
+                  gift={gift}
+                  onGiftUpdated={handleGiftUpdated}
+                  onCancel={() => setEditingGift(null)}
+                />
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <FaGift className="text-pink-500" />
+                      <h3 className="text-lg font-medium text-gray-200">{gift.name}</h3>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setEditingGift(gift)}
+                        className="text-gray-400 hover:text-pink-500 transition-colors"
+                        title="Edit gift"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGift(gift.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        title="Delete gift"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 text-gray-200">
-                  <div className="max-w-md">{gift.description}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${
-                    gift.status === 'reserved' 
-                      ? 'bg-pink-900/50 text-pink-200 border border-pink-500'
-                      : 'bg-green-900/50 text-green-200 border border-green-500'
-                  }`}>
-                    {gift.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleDelete(gift.id)}
-                    className="text-red-400 hover:text-red-300 transition-colors"
-                    title="Delete Gift"
-                  >
-                    <FaTrash className="text-lg" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  <p className="text-gray-400">{gift.description}</p>
+                  <div className="flex items-center space-x-2">
+                    {gift.status === 'reserved' ? (
+                      <>
+                        <FaCheck className="text-green-500" />
+                        <span className="text-green-500">Reserved</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaTimes className="text-gray-500" />
+                        <span className="text-gray-500">Available</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 } 
