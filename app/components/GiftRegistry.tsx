@@ -290,7 +290,6 @@ export default function GiftRegistry({ guestId }: GiftRegistryProps) {
         </div>
       )}
 
-      <LanguageSwitcher />
     </div>
   )
 } 
