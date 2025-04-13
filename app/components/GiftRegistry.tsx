@@ -3,11 +3,17 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 import { FaGift, FaSpinner } from 'react-icons/fa'
+import { useLanguage } from '../contexts/LanguageContext'
+import LanguageSwitcher from './LanguageSwitcher'
+import type { TranslationKey } from '../contexts/LanguageContext'
 
 interface Gift {
   id: string
   name: string
   description: string
+  status: 'available' | 'reserved'
+  created_at: string
+  updated_at: string
   image_url?: string
 }
 
@@ -24,16 +30,25 @@ const RESERVED_GIFT_STORAGE_KEY = 'noah_shower_reserved_gift'
 const ITEMS_PER_PAGE = 6
 
 export default function GiftRegistry({ guestId }: GiftRegistryProps) {
+  const { t, translateGift } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [gifts, setGifts] = useState<Gift[]>([])
   const [reservations, setReservations] = useState<GiftReservation[]>([])
-  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE)
+  const [visibleGifts, setVisibleGifts] = useState<Gift[]>([])
+  const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     fetchGifts()
   }, [])
+
+  useEffect(() => {
+    if (gifts.length > 0) {
+      setVisibleGifts(gifts.slice(0, ITEMS_PER_PAGE))
+      setHasMore(gifts.length > ITEMS_PER_PAGE)
+    }
+  }, [gifts])
 
   const fetchGifts = async () => {
     try {
@@ -159,9 +174,14 @@ export default function GiftRegistry({ guestId }: GiftRegistryProps) {
   }
 
   const loadMore = () => {
+    if (loadingMore) return
+
     setLoadingMore(true)
     setTimeout(() => {
-      setVisibleItems(prev => prev + ITEMS_PER_PAGE)
+      const currentLength = visibleGifts.length
+      const nextGifts = gifts.slice(currentLength, currentLength + ITEMS_PER_PAGE)
+      setVisibleGifts([...visibleGifts, ...nextGifts])
+      setHasMore(currentLength + ITEMS_PER_PAGE < gifts.length)
       setLoadingMore(false)
     }, 500)
   }
@@ -193,97 +213,118 @@ export default function GiftRegistry({ guestId }: GiftRegistryProps) {
           <FaGift className="h-12 w-12 mx-auto" />
         </div>
         <h3 className="text-xl font-bold text-orange-800 mb-2 font-sour-gummy">
-          Gift Registry Coming Soon!
+          {t('gifts.comingSoon')}
         </h3>
         <p className="text-orange-600 font-roboto">
-          We're still preparing our gift wishlist. Please check back later!
+          {t('gifts.checkBack')}
         </p>
       </div>
     )
   }
 
-  const visibleGifts = gifts.slice(0, visibleItems)
-  const hasMore = visibleItems < gifts.length
-
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="bg-orange-100 p-2 rounded-lg">
-          <FaGift className="h-6 w-6 text-orange-700" />
+    <div className="bg-white/90 p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-2 border-orange-100 hover:border-orange-200 transition-all duration-300">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="bg-orange-100 p-3 rounded-xl">
+          <FaGift className="text-orange-700 text-2xl" />
         </div>
-        <h2 className="text-3xl font-bold text-orange-800 font-sour-gummy">Gift Registry</h2>
+        <h2 className="text-3xl font-bold text-orange-800 font-sour-gummy">{t('gifts.title')}</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {visibleGifts.map((gift) => (
-          <div
-            key={gift.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300"
-          >
-            {gift.image_url && (
-              <img 
-                src={gift.image_url} 
-                alt={gift.name}
-                className="w-full h-48 object-cover"
-              />
-            )}
-            <div className="p-4 flex flex-col justify-between h-full">
-              <h3 className="text-lg font-semibold text-orange-600 mb-2 font-sour-gummy">{gift.name}</h3>
-              <p className="text-orange-800 mb-4">{gift.description}</p>
-              
-              {localStorage.getItem(RESERVED_GIFT_STORAGE_KEY) === gift.id ? (
-                <div className="flex flex-col justify-center gap-y-2">
-                  <span className="text-orange-600 w-full font-sour-gummy font-medium">Reserved by you ❤️</span>
-                  <span className="text-orange-300 text-sm">Changed your mind? No worries! Click below to unreserve.</span>
-                  <button
-                    onClick={() => handleUnreserveGift(gift.id)}
-                    className="text-white w-fit self-end text-sm cursor-pointer hover:text-red-700 font-medium bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-300"
-                  >
-                    Unreserve
-                  </button>
+      <p className="text-orange-700 mb-8 font-roboto">{t('gifts.subtitle')}</p>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-700"></div>
+        </div>
+      ) : gifts.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-orange-700 font-roboto">{t('gifts.comingSoon')}</p>
+          <p className="text-orange-600 mt-2 font-roboto">{t('gifts.checkBack')}</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleGifts.map((gift) => {
+              const isReservedByCurrentUser = reservations.some(
+                (reservation) => reservation.gift_id === gift.id
+              );
+              const isReservedBySomeoneElse = gift.status === 'reserved' && !isReservedByCurrentUser;
+
+              return (
+                <div
+                  key={gift.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300"
+                >
+                  {gift.image_url && (
+                    <img 
+                      src={gift.image_url} 
+                      alt={gift.name}
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+                  <div className="p-4 flex flex-col justify-between h-full">
+                    <h3 className="text-lg font-semibold text-orange-600 mb-2 font-sour-gummy">
+                      {translateGift(gift.name)}
+                    </h3>
+                    <p className="text-orange-800 mb-4">{translateGift(gift.description)}</p>
+                    
+                    {isReservedByCurrentUser ? (
+                      <div className="flex flex-col justify-center gap-y-2">
+                        <span className="text-orange-600 w-full font-sour-gummy font-medium">{t('gifts.reservedByYou')}</span>
+                        <span className="text-orange-300 text-sm">{t('gifts.changedMind')}</span>
+                        <button
+                          onClick={() => handleUnreserveGift(gift.id)}
+                          className="text-white w-fit self-end text-sm cursor-pointer hover:text-red-700 font-medium bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-600 transition-colors duration-300"
+                        >
+                          {t('gifts.unreserve')}
+                        </button>
+                      </div>
+                    ) : isReservedBySomeoneElse ? (
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-orange-600 font-medium">{t('gifts.reservedBySomeone')}</span>
+                        <button
+                          disabled
+                          className="bg-gray-300 text-gray-500 py-2 px-4 rounded-md cursor-not-allowed"
+                        >
+                          {t('gifts.reserved')}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-orange-600 font-medium">{t('gifts.available')}</span>
+                        <button
+                          onClick={() => handleReserveGift(gift.id)}
+                          className="bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors duration-300"
+                        >
+                          {t('gifts.reserve')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : reservations.some(r => r.gift_id === gift.id) ? (
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-orange-600 font-medium">Reserved by someone else</span>
-                  <button
-                    disabled
-                    className="bg-gray-300 text-gray-500 py-2 px-4 rounded-md cursor-not-allowed"
-                  >
-                    Reserved
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-orange-600 font-medium">Available</span>
-                  <button
-                    onClick={() => handleReserveGift(gift.id)}
-                    className="bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors duration-300"
-                  >
-                    Reserve
-                  </button>
-                </div>
-              )}
-            </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
 
-      {hasMore && (
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="bg-orange-700 text-white px-6 py-3 rounded-lg hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300 flex items-center gap-2"
-          >
-            {loadingMore ? (
-              <>
-                <FaSpinner className="animate-spin" />
-                Loading more gifts...
-              </>
-            ) : (
-              'Load More Gifts'
-            )}
-          </button>
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="bg-orange-700 text-white px-6 py-3 rounded-lg hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300 flex items-center gap-2"
+              >
+                {loadingMore ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

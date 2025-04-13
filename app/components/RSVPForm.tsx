@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase'
 import { Guest } from '../types/supabase'
-import { FaUser, FaCheck, FaPaw, FaUserFriends, FaTimes } from 'react-icons/fa'
+import { FaUser, FaCheck, FaPaw, FaUserFriends, FaTimes, FaSpinner } from 'react-icons/fa'
 import GiftRegistry from './GiftRegistry'
+import { useLanguage } from '../contexts/LanguageContext'
 
 interface RSVPFormProps {
   guestId?: string
@@ -13,14 +14,15 @@ interface RSVPFormProps {
 const GUEST_STORAGE_KEY = 'noah_shower_guest'
 
 export default function RSVPForm({ guestId }: RSVPFormProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [guest, setGuest] = useState<Guest | null>(null)
   const [formData, setFormData] = useState({
     name: '',
-    companions: 0,
-    status: 'pending' as Guest['status']
+    status: 'pending' as 'attending' | 'not_attending' | 'pending',
+    companions: 0
   })
   const [formErrors, setFormErrors] = useState({
     name: '',
@@ -35,8 +37,8 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
       setGuest(parsedGuest)
       setFormData({
         name: parsedGuest.name,
-        companions: parsedGuest.companions,
-        status: parsedGuest.status
+        status: parsedGuest.status,
+        companions: parsedGuest.companions || 0
       })
       setSuccess(true)
       setLoading(false)
@@ -51,53 +53,6 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
     }
   }, [guestId])
 
-  const validateForm = () => {
-    const errors = {
-      name: '',
-      companions: ''
-    }
-    let isValid = true
-
-    if (!guest) {
-      // Name validation
-      if (!formData.name.trim()) {
-        errors.name = 'Name is required'
-        isValid = false
-      } else if (formData.name.trim().length < 2) {
-        errors.name = 'Name must be at least 2 characters'
-        isValid = false
-      }
-
-      // Companions validation
-      if (formData.companions < 0) {
-        errors.companions = 'Number of companions cannot be negative'
-        isValid = false
-      } else if (formData.companions > 5) {
-        errors.companions = 'Maximum 5 companions allowed'
-        isValid = false
-      }
-    }
-
-    // Status validation
-    if (formData.status === 'pending') {
-      isValid = false
-    }
-
-    setFormErrors(errors)
-    return isValid
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target
-    if (type === 'number') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-    }
-    // Clear error when user starts typing
-    setFormErrors(prev => ({ ...prev, [name]: '' }))
-  }
-
   const fetchGuest = async () => {
     try {
       const { data, error } = await supabase
@@ -107,21 +62,56 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
         .single()
 
       if (error) throw error
-      if (data) {
-        setGuest(data)
-        setFormData({
-          name: data.name,
-          companions: data.companions,
-          status: data.status
-        })
-        // Save to localStorage
-        localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data))
-      }
-    } catch (err: any) {
-      setError(err.message)
+
+      setGuest(data)
+      setFormData({
+        name: data.name,
+        status: data.status,
+        companions: data.companions || 0
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleInputChange = (field: keyof typeof formData, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+
+    // Clear error when user starts typing
+    if (field === 'name') {
+      setFormErrors(prev => ({
+        ...prev,
+        name: ''
+      }))
+    } else if (field === 'companions') {
+      setFormErrors(prev => ({
+        ...prev,
+        companions: ''
+      }))
+    }
+  }
+
+  const validateForm = () => {
+    const errors = {
+      name: '',
+      companions: ''
+    }
+
+    if (!guest && !formData.name.trim()) {
+      errors.name = t('rsvp.nameRequired')
+    }
+
+    if (formData.status === 'attending' && formData.companions < 0) {
+      errors.companions = t('rsvp.companionsInvalid')
+    }
+
+    setFormErrors(errors)
+    return !errors.name && !errors.companions
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,43 +124,36 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
     try {
       if (guest) {
         // Update existing guest
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('guests')
           .update({
             status: formData.status,
-            companions: formData.companions
+            companions: formData.status === 'attending' ? formData.companions : 0
           })
           .eq('id', guest.id)
-          .select()
-          .single()
 
         if (error) throw error
-        if (data) {
-          setGuest(data)
-          localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data))
-        }
       } else {
         // Create new guest
         const { data, error } = await supabase
           .from('guests')
           .insert([{
-            name: formData.name.trim(),
-            companions: formData.companions,
-            status: formData.status
+            name: formData.name,
+            status: formData.status,
+            companions: formData.status === 'attending' ? formData.companions : 0
           }])
           .select()
           .single()
 
         if (error) throw error
-        if (data) {
-          setGuest(data)
-          localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(data))
-        }
+
+        // Save guest data to localStorage
+        localStorage.setItem('noah_shower_guest', JSON.stringify(data))
       }
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
@@ -191,11 +174,11 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
           <div className="text-orange-600 text-6xl mb-4">
             <FaCheck />
           </div>
-          <h3 className="text-2xl font-bold text-orange-600 mb-2 font-sour-gummy">RSVP Confirmed!</h3>
+          <h3 className="text-2xl font-bold text-orange-600 mb-2 font-sour-gummy">{t('rsvp.success')}</h3>
           <p className="text-orange-600 font-roboto">
             {guest 
-              ? "We've updated your RSVP status."
-              : "We've received your RSVP. Thank you for confirming!"}
+              ? t('rsvp.updated')
+              : t('rsvp.received')}
           </p>
           {formData.status === 'attending' && (
             <button
@@ -205,7 +188,7 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
               }}
               className="mt-4 text-sm text-orange-600 hover:text-orange-700 underline"
             >
-              Update my RSVP
+              {t('rsvp.update')}
             </button>
           )}
         </div>
@@ -233,128 +216,107 @@ export default function RSVPForm({ guestId }: RSVPFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {!guest && (
-          <>
-            <div>
-              <label htmlFor="name" className="block text-xl font-semibold text-orange-800 mb-2 font-sour-gummy">
-                Your Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md text-base text-orange-700 shadow-sm placeholder-gray-400
-                focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 ${
-                  formErrors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter your name"
-              />
-              {formErrors.name && (
-                <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="companions" className="block text-xl font-semibold text-orange-800 mb-2 font-sour-gummy">
-                Number of Companions
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUserFriends className="h-5 w-5 text-orange-400" />
-                </div>
-                <input
-                  type="number"
-                  id="companions"
-                  name="companions"
-                  min="0"
-                  max="5"
-                  value={formData.companions}
-                  onChange={handleInputChange}
-                  className={`mt-1 block w-full pl-10 px-3 py-2 bg-white border rounded-md text-base text-orange-700 shadow-sm placeholder-gray-400
-                  focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 ${
-                    formErrors.companions ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="0"
-                />
-              </div>
-              {formErrors.companions && (
-                <p className="mt-1 text-sm text-red-600">{formErrors.companions}</p>
-              )}
-            </div>
-          </>
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+            {error}
+          </div>
         )}
 
-        {/* Attendance Selection */}
-        <div className="space-y-4">
-          <label className="block text-xl font-semibold text-orange-800 mb-4 font-sour-gummy">
-            Will you join us?
+        <div>
+          <label className="block text-orange-800 font-medium mb-2">
+            {t('rsvp.name')}
           </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => handleInputChange({ target: { name: 'status', value: 'attending' } } as any)}
-              className={`p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
-                formData.status === 'attending'
-                  ? 'border-orange-400 bg-orange-50'
-                  : 'border-orange-100 hover:border-orange-200 hover:bg-orange-50/50'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                formData.status === 'attending'
-                  ? 'bg-orange-400 text-white'
-                  : 'bg-orange-100 text-orange-700'
-              }`}>
-                <FaCheck className="text-2xl" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-lg font-bold text-orange-800 mb-1">Yes, I'll be there!</h3>
-                <p className="text-orange-700 text-sm">Can't wait to celebrate with you!</p>
-              </div>
-            </button>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaUser className="text-orange-400" />
+            </div>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder={t('rsvp.namePlaceholder')}
+              disabled={!!guest}
+            />
+          </div>
+          {formErrors.name && (
+            <p className="text-red-600 text-sm mt-1">{formErrors.name}</p>
+          )}
+        </div>
 
-            <button
-              type="button"
-              onClick={() => handleInputChange({ target: { name: 'status', value: 'not_attending' } } as any)}
-              className={`p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 ${
-                formData.status === 'not_attending'
-                  ? 'border-orange-400 bg-orange-50'
-                  : 'border-orange-100 hover:border-orange-200 hover:bg-orange-50/50'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                formData.status === 'not_attending'
-                  ? 'bg-orange-400 text-white'
-                  : 'bg-orange-100 text-orange-700'
-              }`}>
-                <FaTimes className="text-2xl" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-lg font-bold text-orange-800 mb-1">Sorry, can't make it</h3>
-                <p className="text-orange-700 text-sm">We'll miss you at the celebration</p>
-              </div>
-            </button>
+        <div>
+          <label className="block text-orange-800 font-medium mb-2">
+            {t('rsvp.status')}
+          </label>
+          <div className="space-y-2">
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="status"
+                value="attending"
+                checked={formData.status === 'attending'}
+                onChange={(e) => handleInputChange('status', e.target.value)}
+                className="text-orange-600 focus:ring-orange-500"
+              />
+              <span className="text-orange-800">
+                <FaCheck className="inline mr-2" />
+                {t('rsvp.attending')}
+              </span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="status"
+                value="not_attending"
+                checked={formData.status === 'not_attending'}
+                onChange={(e) => handleInputChange('status', e.target.value)}
+                className="text-orange-600 focus:ring-orange-500"
+              />
+              <span className="text-orange-800">
+                <FaTimes className="inline mr-2" />
+                {t('rsvp.notAttending')}
+              </span>
+            </label>
           </div>
         </div>
 
-        {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
+        {formData.status === 'attending' && (
+          <div>
+            <label className="block text-orange-800 font-medium mb-2">
+              {t('rsvp.companions')}
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaUserFriends className="text-orange-400" />
               </div>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                value={formData.companions}
+                onChange={(e) => handleInputChange('companions', parseInt(e.target.value))}
+                className="w-full pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
             </div>
+            {formErrors.companions && (
+              <p className="text-red-600 text-sm mt-1">{formErrors.companions}</p>
+            )}
           </div>
         )}
 
         <button
           type="submit"
           disabled={loading || !isFormValid}
-          className="w-full font-sour-gummy bg-orange-700 text-white py-2 px-4 rounded-md font-medium hover:bg-orange-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
-          {loading ? 'Saving...' : 'Submit RSVP'}
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <FaSpinner className="animate-spin mr-2" />
+              {t('rsvp.submitting')}
+            </div>
+          ) : (
+            t('rsvp.submit')
+          )}
         </button>
       </form>
     </div>

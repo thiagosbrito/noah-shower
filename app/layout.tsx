@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Roboto, Sour_Gummy } from "next/font/google";
 import "./globals.css";
 import { Hanalei_Fill } from "next/font/google";
 import localFont from "next/font/local";
+import { LanguageProvider } from './contexts/LanguageContext'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +48,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${hanalei.variable} ${roboto.variable} ${sourGummy.variable} antialiased`}
       >
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );
